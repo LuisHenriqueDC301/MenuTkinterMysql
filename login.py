@@ -1,5 +1,8 @@
 from tkinter import Tk, Frame, Entry, Label, Button, StringVar
 from conexao import banco
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from main import Tarefas
 class TelaLogin:
     def __init__(self) -> None:
         #Configurações da tela de login
@@ -23,10 +26,10 @@ class TelaLogin:
         self.LabelUsu.pack(side="top",pady=8)
         self._EntryUsu = Entry(self.frameUsu,width=30)
         self._EntryUsu.pack(side="left",pady=8)
-
+    
         self.LabelSen = Label(self.frameSen,text="Digite sua senha: ")
         self.LabelSen.pack(side="top",pady=8)
-        self._EntrySen = Entry(self.frameSen,width=30)
+        self._EntrySen = Entry(self.frameSen,width=30,show="*")
         self._EntrySen.pack(side="left",pady=8)  
         
         self.ButtonLogar = Button(self.frameBu,text="Entrar", command=lambda:self.Verifi())
@@ -44,7 +47,9 @@ class TelaLogin:
         elif Dados != 1:            
               self.Erro("Errado")
         else:
-            pass
+            self.TelaLogin.destroy()
+            Obj = Tarefas(self._Usuario)
+            Obj.TelaTk()
     def Erro(self,e):
         self.StrMensagem = StringVar()
         for i in self.frameEr.winfo_children():

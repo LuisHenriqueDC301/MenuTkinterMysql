@@ -1,77 +1,130 @@
-from tkinter import Tk, Frame, Entry, Label, Button, StringVar
+from tkinter import Tk, Frame, Entry, Label, Button, StringVar, Listbox, END, Toplevel, messagebox
 from conexao import banco
-from login import TelaLogin
-from ttkbootstrap import *
-class TelaCadastro:
-    def __init__(self) -> None:
-        #Configuração da tela tkinter
-        self.tela = Tk()
-        self.tela.title("Cadastro ")
-        self.tela.geometry("280x280")
-        self.tela.minsize(280, 280) 
-        self.tela.maxsize(280, 280)
+from tkcalendar import DateEntry
+class Tarefas:
+    def __init__(self,Usu,listaTarefas=[]) -> None:
+        self.listaTarefas = listaTarefas
+        self.__Usu = Usu
 
-        #Crição dos Frames
-        self.frameUsu = Frame(self.tela)
-        self.frameUsu.pack()
-        self.frameSen = Frame(self.tela)
-        self.frameSen.pack()
-        self.frameBu = Frame(self.tela)
-        self.frameBu.pack()
-        self.frameEr = Frame(self.tela)
-        self.frameEr.pack()
-
-
-        #Criação dos botões
-        self.LabelUsu = Label(self.frameUsu,text="Crie seu usuario: ")
-        self.LabelUsu.pack(side="top",pady=8)
-        self._EntryUsu = Entry(self.frameUsu,width=30)
-        self._EntryUsu.pack(side="left",pady=8)
-
-        self.LabelSen = Label(self.frameSen,text="Crie sua senha: ")
-        self.LabelSen.pack(side="top",pady=8)
-        self._EntrySen = Entry(self.frameSen,width=30)
-        self._EntrySen.pack(side="left",pady=8)  
+    
+    def TelaTk(self):
+        #Configurações da Tela
+        self.TelaTarefas = Tk()
+        self.TelaTarefas.title("Tarefas")
+        self.TelaTarefas.geometry("520x480")
+        self.TelaTarefas.minsize(520, 480) 
+        self.TelaTarefas.maxsize(520, 480)       
         
-        self.ButtonLogar = Button(self.frameBu,text="Já tem conta? Entrar na sua conta",command=lambda:self.Login())
-        self.ButtonLogar.pack(side="bottom",pady=8)  
+        #Criação dos Frames
+        self.Frame_Cima = Frame(self.TelaTarefas)
+        self.Frame_Cima.pack()
+                
+        self.BoxCenter = Listbox(self.TelaTarefas,font="Arial 12",xscrollcommand="yes")
+        self.BoxCenter.pack(fill="both", expand="yes")
+        self.Tudo = Frame(self.BoxCenter)
+        self.Tudo.pack()
 
-        self.ButtonCriar = Button(self.frameBu,text="Criar sua conta",command=lambda:self.CriarConta())
-        self.ButtonCriar.pack(side="bottom",pady=8)
+        self.Frame_Baixo = Frame(self.TelaTarefas)
+        self.Frame_Baixo.pack()
+       
+        #Butões/Labels
+        titulo = Label(self.Frame_Cima, text="Minhas Tarefas",font=("Elephant 35"))
+        titulo.grid(row=0, column=0, pady=1,)
+        
+        self.ButtonAdicionar = Button(self.Frame_Baixo,text="Adiconar", width=15,command=lambda:self.Acao("Adiconar"))
+        self.ButtonAdicionar.pack(side="left",padx=8,pady=8)  
+        self.ButtonAtualizar = Button(self.Frame_Baixo,text="Alterar", width=15,command=lambda:self.Acao("Alterar"))
+        self.ButtonAtualizar.pack(side="left",padx=8,pady=8)  
+        self.ButtonRemover = Button(self.Frame_Baixo,text="Remover", width=15,command=lambda:self.Remover())
+        self.ButtonRemover.pack(side="left",padx=8,pady=8)  
+       
+    
+
+       #Tarefas No Banco de Dados
+        global Dados
+        banco.execute(f"select * from tarefas where Conta_Usuario = '{self.__Usu}';")
+        Dados = banco.fetchall()
+        print(Dados)
+        for i in Dados:
+            #print(i)
+            self.listaTarefas.append(f'{i[2]}'+' '*len(i[2]) +f'Data de Entrega: {i[3]}')
+
+        
+        for Tarefa in self.listaTarefas:
+            self.BoxCenter.insert(END,Tarefa)
 
        
-        self.tela.mainloop()
-  
-    def CriarConta(self):
-        self._Usuario = self._EntryUsu.get()
-        self._Senha = self._EntrySen.get()
-        Dados = banco.execute(f"select * from conta where Usuario = '{self._Usuario}';")
-        if self._Usuario == "" or self._Senha == "":
-            self.Erro("Vazio")
-        elif Dados == 1:
-            self.Erro("Usu")
+        self.TelaTarefas.mainloop()       
+
+
+
+    def AdicionarTarefas(self,txt,data):
+        self._NovaTarefa = txt
+        self.listaTarefas.append(f'{self._NovaTarefa}'+' '*len(txt) +f'Data de Entrega: {data}')
+        banco.execute(f'insert into tarefas(Conta_Usuario,tarefas,data) values("{self.__Usu}", "{self._NovaTarefa}","{data}");')
+        banco.execute("commit;")
+        self.BoxCenter.insert(END,f'{self._NovaTarefa}'+' '*len(txt) +f'Data de Entrega: {data}')
+        self.Tela.destroy()
+        return self.listaTarefas
+
+    def Remover(self):
+        self.Item = list(self.BoxCenter.curselection())
+        if self.Item == []:
+            self.Erro("Sele")
         else:
-          # banco.execute(f"insert into conta values ('{self._Usuario}','{self._Senha}');")
-          # banco.execute("commit;")
-           self.Login()
-           
-    
-    def Erro(self,e):
-        self.StrMensagem = StringVar()
-        for i in self.frameEr.winfo_children():
-            i.destroy()        
-        if e == "Vazio":
-            self.StrMensagem.set("Erro, Campo Vazio")
-            self.Mensagem = Label(self.frameEr, textvariable=self.StrMensagem).pack()
-        elif e == "Usu":
-            self.StrMensagem.set("Erro, Usuario já existe") 
-            self.Mensagem = Label(self.frameEr, textvariable=self.StrMensagem).pack()        
-    
-        
-       
-    def Login(self):
-        self.tela.destroy()
-        login1 = TelaLogin()
+            Num = int(self.Item[0])
+            self.BoxCenter.delete(Num)
+            del self.listaTarefas[Num]
+            teste = list(Dados)[Num][1]
+            print(teste)
+            banco.execute(f'delete from tarefas where Id = "{teste}"; ')
+            banco.execute("commit")
 
+    def Atualizar(self):
+        pass
+
+    def Acao(self,condi):
+        self.Tela = Toplevel()
+        self.Tela.geometry("240x150")
+        self.Frame = Frame(self.Tela)
+        self.Frame.pack()
+        self.FrameCal = Frame(self.Tela)
+        self.FrameCal.pack()
+        self.FrameB = Frame(self.Tela)
+        self.FrameB.pack()
+        if condi == "Adiconar":
+            self.LabelTarefa = Label(self.Frame,text="Digite a tarefa que deseja adicionar: ")
+            self.LabelTarefa.pack()
+            self._EntryTarefa = Entry(self.Frame,width=30)
+            self._EntryTarefa.pack(side="right",pady=8)
+
+            self.LabelTarefa = Label(self.FrameCal,text="Coloque a Data de Entrega: ")
+            self.LabelTarefa.pack()           
+            self.LabelData=Entry(self.FrameCal)
+            self.LabelData.pack()
+          
+            
+            self.ButonOK = Button(self.FrameB, text="OK", command=lambda:self.AdicionarTarefas(self._EntryTarefa.get(), self.LabelData.get()))
+            self.ButonOK.pack(side="bottom",pady=12)  
+
+        elif condi == "Alterar":
+            self.Item = int(list(self.BoxCenter.curselection())[0])
+            #teste = list(Dados)[self.Item]
+            print(self.Item)
+            self.LabelTarefa = Label(self.Frame,text="Alterar o nome do trabalho: ")
+            self.LabelTarefa.pack()
+
+            self._EntryTarefa = Entry(self.Frame,width=30,textvariable=self.Item)
+            self._EntryTarefa.insert(0,"Sei la")
+            self._EntryTarefa.pack(side="right",pady=8)            
+
+
+        self.Tela.mainloop()
+    def Erro(self,e):
+        if e == "Vazio":
+            messagebox.showwarning(title="Erro", message="Campo Vazio")
+        if e == "Sele":
+            messagebox.showwarning(title="Erro", message="Nenhum Item foi selecionado")
 if __name__ == "__main__":
-    menu = TelaCadastro()
+    obj = Tarefas("Lulu")
+    obj.TelaTk()
